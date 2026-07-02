@@ -1,69 +1,73 @@
-import nest_asyncio
-nest_asyncio.apply()
-
 import streamlit as st
 import time
-import g4f
-# ... మిగతా కోడ్ అంతా సేమ్ ...
-  # API Key అవసరం లేని ఉచిత లైబ్రరీ
+from google import genai
+from google.genai import errors
 
 # Streamlit పేజీ సెటప్
 st.set_page_config(page_title="AI తెలుగు కథలు", page_icon="📖", layout="centered")
 
 st.title("📖 అపరిమిత AI తెలుగు కథల జనరేటర్")
-st.write("కస్టమర్ ఎన్నిసార్లు క్లిక్ చేసినా ఎర్రర్ రాకుండా బ్యాకప్ మోడల్స్‌తో డిజైన్ చేయబడింది.")
+st.write("గూగుల్ అఫీషియల్ ఫ్రీ మోడల్‌తో 100% గ్యారెంటీగా పనిచేస్తుంది.")
+
+# Streamlit Secrets నుండి API Key ని రీడ్ చేయడం
+# (మీరు కాపీ చేసిన API Key ని Streamlit Settings లో "GEMINI_API_KEY" పేరుతో పెట్టండి)
+api_key = st.secrets.get("GEMINI_API_KEY")
 
 user_prompt = st.text_input("కథ దేని గురించి రాయాలి? (Topic/Idea):", 
                             placeholder="ఉదాహరణ: అనగనగా ఒక రాజు, కాకి-పాము కథ...")
 
-# 1. బ్యాకప్ మోడల్స్ లిస్ట్ (ఒకటి పని చేయకపోతే ఇంకొకటి ఆటోమేటిక్‌గా రన్ అవుతుంది)
-AVAILABLE_MODELS = [
-    g4f.models.gpt_4o,      # మొదటి ఛాయిస్
-    g4f.models.gpt_4,       # బ్యాకప్ 1
-    g4f.models.llama_3_1_70b # బ్యాకప్ 2
-]
-
 if st.button("🚀 కథను సిద్ధం చేయి"):
-    if not user_prompt:
+    if not api_key:
+        st.error("⚠️ Streamlit Secrets లో GEMINI_API_KEY కాన్ఫిగర్ చేయలేదు! దయచేసి సెట్టింగ్స్ చెక్ చేయండి.")
+    elif not user_prompt:
         st.warning("⚠️ కథ రాయడానికి ఏదైనా ఒక టాపిక్ ఇవ్వండి!")
     else:
         full_prompt = f"""
-        నువ్వు తెలుగు సాహిత్యంలో ఒక సీనియర్ రచయితవి.
-        టాపిక్: "{user_prompt}"
+        nuvvu telugu sahityam mariyu jaanapada kathalalo oka senior rachayithavi (Senior Telugu Story Teller).
+        Topic: "{user_prompt}"
         
-        ఈ టాపిక్ ఆధారంగా కనీసం 5-6 పారాగ్రాఫ్‌లు ఉండేలా ఒక అద్భుతమైన, పెద్ద తెలుగు కథను రాయి.
-        కథలో మంచి పాత్రల పేర్లు, సంభాషణలు, ఆసక్తికరమైన మలుపులు ఉండాలి.
-        కథ చివర్లో ప్రత్యేకంగా "नीति (Moral):" అని పెట్టి ఒక మంచి సందేశాన్ని ఇవ్వు.
-        కథ మొత్తం కేవలం స్పష్టమైన తెలుగు లిపి (Telugu Script) లోనే ఉండాలి.
+        Ee topic aadharanga kaneesam 5-6 paragraphs unde la oka adbhuthamaina, pedda telugu kathanu rayi.
+        Kathalo manchi paathrala perlu, sambhashanalu, aasakthikaramaina malupulu mariyu spashtamaina mugimpu undali.
+        Katha chivarlo prathyekanga "नीति (Moral):" ani petti oka manchi sandesanni ivvu.
+        Katha motham kevalam spashtamaina Telugu Script lone undali.
         """
         
         story_generated = False
+        max_retries = 3  # ఒకవేళ సర్వర్ బిజీగా ఉంటే 3 సార్లు ప్రయత్నిస్తుంది
         
-        # 2. ఆటోమేటిక్ రీ-ట్రై లూప్ (ఎర్రర్ రాకుండా కాపాడుతుంది)
-        for index, model in enumerate(AVAILABLE_MODELS):
-            with st.spinner(f"🤖 AI రచయిత ఆలోచిస్తున్నారు... (Attempt {index + 1})"):
+        # గూగుల్ జెమిని క్లయింట్ ఇనిషియలైజేషన్
+        client = genai.Client(api_key=api_key)
+        
+        for attempt in range(max_retries):
+            with st.spinner(f"🤖 AI రచయిత కథను ఆలోచిస్తున్నారు... (Attempt {attempt + 1})"):
                 try:
-                    # సర్వర్‌పై లోడ్ తగ్గించడానికి చిన్న గ్యాప్
-                    time.sleep(1) 
-                    
-                    response = g4f.ChatCompletion.create(
-                        model=model,
-                        messages=[{"role": "user", "content": full_prompt}],
+                    # గూగుల్ వారి సరికొత్త మరియు ఫాస్టెస్ట్ ఫ్రీ మోడల్ (gemini-2.5-flash)
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=full_prompt,
                     )
                     
-                    # రెస్పాన్స్ కరెక్ట్‌గా వస్తే డిస్ప్లే చేయడం
-                    if response and len(str(response).strip()) > 10:
+                    if response.text:
                         st.success("✨ మీ కథ సిద్ధంగా ఉంది! ✨")
                         st.markdown("---")
-                        st.write(response)
+                        st.write(response.text)
                         st.markdown("---")
                         story_generated = True
-                        break # కథ జనరేట్ అయిపోయింది కాబట్టి లూప్ ఆపేస్తాం
+                        break  # సక్సెస్ అయింది కాబట్టి లూప్ ఆపేస్తాం
                         
+                except errors.APIError as e:
+                    # సర్వర్ ఓవర్‌లోడ్ (Rate Limit) అయితే 2 సెకన్లు ఆగి మళ్ళీ ట్రై చేస్తుంది
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        st.error(f"గూగుల్ సర్వర్ బిజీగా ఉంది. దయచేసి కొద్దిసేపటి తర్వాత ప్రయత్నించండి.")
                 except Exception as e:
-                    # బ్యాక్‌ఎండ్‌లో ఎర్రర్ వస్తే సైలెంట్‌గా నెక్స్ట్ మోడల్‌కి వెళ్తుంది, కస్టమర్‌కి ఎర్రర్ చూపించదు
-                    continue
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    else:
+                        st.error("ఏదో చిన్న సాంకేతిక లోపం వచ్చింది. మళ్ళీ క్లిక్ చేయండి.")
         
-        # 3. ఒకవేళ ఏ మోడల్ కూడా పనిచేయకపోతే సేఫ్ మెసేజ్
         if not story_generated:
-            st.error("😥 సర్వర్ చాలా బిజీగా ఉంది. దయచేసి ఒక్క నిమిషం ఆగి మళ్ళీ 'కథను సిద్ధం చేయి' క్లిక్ చేయండి.")
+            st.info("💡 ఒకవేళ ఎర్రర్ వస్తూనే ఉంటే, మీ AI Studio లో కొత్త API Key ని క్రియేట్ చేసి మార్చండి.")
