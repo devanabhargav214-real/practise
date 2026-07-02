@@ -16,7 +16,7 @@ else:
 
 # కస్టమర్ కేవలం టాపిక్ మాత్రమే ఇస్తారు
 user_prompt = st.text_input("కథ దేని గురించి రాయాలి? (Topic/Idea):", 
-                            placeholder="ఉదాహరణ: తెనాలి రామకృష్ణ కథలు, ఒక తెలివైన కాకి...")
+                            placeholder="ఉదాహరణ: తెనాలి RAMAKRISHNA కథలు, ఒక తెలివైన కాకి...")
 
 if st.button("🚀 కథను సిద్ధం చేయి"):
     if "GEMINI_API_KEY" not in st.secrets:
@@ -24,24 +24,22 @@ if st.button("🚀 కథను సిద్ధం చేయి"):
     elif not user_prompt:
         st.warning("కథ రాయడానికి ఏదైనా ఒక టాపిక్ ఇవ్వండి!")
     else:
-        with st.spinner("🤖 AI తెలుగు రచయిత కథను ఆలోచిస్తోంది... కాసేపు ఆగండి..."):
+        with st.spinner("🤖 AI తెలుగు రచయిత కథను ribbons లో ఆలోచిస్తోంది..."):
             try:
-                # జెమిని మోడల్ సెటప్ (త్వరితగతిన మరియు అద్భుతంగా పనిచేస్తుంది)
-                # దీనితో మార్చండి (ఇలా ఇస్తే 100% పనిచేస్తుంది):
-                model = genai.GenerativeModel("gemini-pro")
-
-                # AI కి ఇచ్చే స్ట్రిక్ట్ ఇన్‌స్ట్రక్షన్స్ (పెద్ద కథ రావడం కోసం)
+                # 1. 2026 లేటెస్ట్ స్టాండర్డ్ మోడల్ పేరు "gemini-2.5-flash" అని ఇస్తున్నాం
+                model = genai.GenerativeModel("gemini-2.5-flash")
+                
                 full_prompt = f"""
                 నువ్వు తెలుగు సాహిత్యం మరియు జానపద కథలలో ఒక సీనియర్ రచయితవి (Senior Telugu Story Teller).
                 టాపిక్: "{user_prompt}"
                 
                 ఈ టాపిక్ ఆధారంగా కనీసం 5-6 పారాగ్రాఫ్‌లు ఉండేలా ఒక అద్భుతమైన, పెద్ద తెలుగు కథను రాయి.
-                కథలో మంచి పాత్రల పేర్లు, సంభాషణలు (dialogues), ఆసక్తికరమైన మలుపులు (twists) మరియు స్పష్టమైన ముగింపు ఉండాలి.
+                కథలో మంచి పాత్రల పేర్లు, సంభాషణలు, ఆసక్తికరమైన మలుపులు మరియు స్పష్టమైన ముగింపు ఉండాలి.
                 కథ చివర్లో ప్రత్యేకంగా "నీతి (Moral):" అని పెట్టి ఒక మంచి సందేశాన్ని ఇవ్వు.
                 కథ మొత్తం కేవలం స్పష్టమైన తెలుగు లిపి (Telugu Script) లోనే ఉండాలి.
                 """
                 
-                # కథను జనరేట్ చేయడం
+                # 2. కథను జనరేట్ చేయడం
                 response = model.generate_content(full_prompt)
                 
                 # రిజల్ట్ డిస్ప్లే
@@ -51,5 +49,13 @@ if st.button("🚀 కథను సిద్ధం చేయి"):
                 st.markdown("---")
                 
             except Exception as e:
-                st.error(f"ఏదో తప్పు జరిగింది: {e}")
-            
+                # ఒకవేళ gemini-2.5-flash కూడా రాకపోతే, gemini-1.5-flash కి ఫాల్‌బ్యాక్ చేయడం
+                try:
+                    model = genai.GenerativeModel("gemini-1.5-flash")
+                    response = model.generate_content(full_prompt)
+                    st.success("✨ మీ కథ సిద్ధంగా ఉంది! ✨")
+                    st.markdown("---")
+                    st.write(response.text)
+                    st.markdown("---")
+                except Exception as e2:
+                    st.error(f"ఏదో తప్పు జరిగింది: {e2}")
