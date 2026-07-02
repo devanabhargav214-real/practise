@@ -28,7 +28,7 @@ if st.button("🚀 కథను సిద్ధం చేయి"):
             try:
                 # జెమిని మోడల్ సెటప్ (త్వరితగతిన మరియు అద్భుతంగా పనిచేస్తుంది)
                 # దీనితో మార్చండి (ఇలా ఇస్తే 100% పనిచేస్తుంది):
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-pro")
 
                 # AI కి ఇచ్చే స్ట్రిక్ట్ ఇన్‌స్ట్రక్షన్స్ (పెద్ద కథ రావడం కోసం)
                 full_prompt = f"""
