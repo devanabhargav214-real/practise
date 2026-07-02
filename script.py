@@ -1,6 +1,11 @@
+import nest_asyncio
+nest_asyncio.apply()
+
 import streamlit as st
 import time
-import g4f  # API Key అవసరం లేని ఉచిత లైబ్రరీ
+import g4f
+# ... మిగతా కోడ్ అంతా సేమ్ ...
+  # API Key అవసరం లేని ఉచిత లైబ్రరీ
 
 # Streamlit పేజీ సెటప్
 st.set_page_config(page_title="AI తెలుగు కథలు", page_icon="📖", layout="centered")
